@@ -63,11 +63,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define WIN32
 #endif
 
-/* Some cmake's define it still */
-#if defined(__CYGWIN__) && !defined(WIN32)
-#define WIN32
-#endif
-
 #ifdef WIN32
 #include <io.h>                /* For _setmode() */
 #include <fcntl.h>             /* For _O_BINARY */
