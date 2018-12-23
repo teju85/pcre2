@@ -17,3 +17,4 @@ src/pcre2_chartables.c
 src/stamp-h1
 Makefile
 config.status
+autom4te.cache/
