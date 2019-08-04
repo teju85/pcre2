@@ -910,6 +910,8 @@
 
 /[:x:]/I
 
+/\F/I
+
 /\l/I
 
 /\L/I
@@ -2406,13 +2408,13 @@
 \= Expect no match
     cat
 
-/(\3)(\1)(a)/alt_bsux,allow_empty_class,match_unset_backref,dupnames
+/(\3)(\1)(a)/allow_empty_class,match_unset_backref,dupnames
     cat
 
 /TA]/
     The ACTA] comes
 
-/TA]/alt_bsux,allow_empty_class,match_unset_backref,dupnames
+/TA]/allow_empty_class,match_unset_backref,dupnames
     The ACTA] comes
 
 /(?2)[]a()b](abc)/
@@ -2444,25 +2446,25 @@
 
 /a[^]b/
 
-/a[]b/alt_bsux,allow_empty_class,match_unset_backref,dupnames
+/a[]b/allow_empty_class,match_unset_backref,dupnames
 \= Expect no match
     ab
 
-/a[]+b/alt_bsux,allow_empty_class,match_unset_backref,dupnames
+/a[]+b/allow_empty_class,match_unset_backref,dupnames
 \= Expect no match
     ab
 
-/a[]*+b/alt_bsux,allow_empty_class,match_unset_backref,dupnames
+/a[]*+b/allow_empty_class,match_unset_backref,dupnames
 \= Expect no match
     ab
 
-/a[^]b/alt_bsux,allow_empty_class,match_unset_backref,dupnames
+/a[^]b/allow_empty_class,match_unset_backref,dupnames
     aXb
     a\nb
 \= Expect no match
     ab
 
-/a[^]+b/alt_bsux,allow_empty_class,match_unset_backref,dupnames
+/a[^]+b/allow_empty_class,match_unset_backref,dupnames
     aXb
     a\nX\nXb
 \= Expect no match
@@ -2901,10 +2903,10 @@
     xxxxabcde\=ps
     xxxxabcde\=ph
 
-/(\3)(\1)(a)/alt_bsux,allow_empty_class,match_unset_backref,dupnames
+/(\3)(\1)(a)/allow_empty_class,match_unset_backref,dupnames
     cat
 
-/(\3)(\1)(a)/I,alt_bsux,allow_empty_class,match_unset_backref,dupnames
+/(\3)(\1)(a)/I,allow_empty_class,match_unset_backref,dupnames
     cat
 
 /(\3)(\1)(a)/I
@@ -2949,10 +2951,11 @@
 
 /abc(*:)pqr/
 
-/abc(*FAIL:123)xyz/
+/(*COMMIT:X)/B
 
 # This should, and does, fail. In Perl, it does not, which I think is a
 # bug because replacing the B in the pattern by (B|D) does make it fail.
+# Turning off Perl's optimization by inserting (??{""}) also makes it fail.
 
 /A(*COMMIT)B/aftertext,mark
 \= Expect no match
@@ -3415,6 +3418,14 @@
     aU0041z
 \= Expect no match
     aAz
+    
+/^\u{7a}/alt_bsux
+    u{7a}
+\= Expect no match
+    zoo 
+
+/^\u{7a}/extra_alt_bsux
+    zoo 
 
 /(?(?=c)c|d)++Y/B
 
@@ -4005,6 +4016,9 @@
     cdab
 
 /(?(VERSION>=10.0)yes|no)/I
+    yesno
+
+/(?(VERSION>=10.04)yes|no)/
     yesno
 
 /(?(VERSION=8)yes){3}/BI,aftertext
@@ -4643,6 +4657,9 @@ B)x/alt_verbnames,mark
 
 /(?=a\K)/replace=z
     BaCaD
+    
+/(?<=\K.)/g,replace=-
+    ab
 
 /(?'abcdefghijklmnopqrstuvwxyzABCDEFG'toolong)/
 
@@ -4934,6 +4951,9 @@ a)"xI
 
 //replace=0
     \=offset=7
+
+/(?<=\G.)/g,replace=+
+    abc
 
 ".+\QX\E+"B,no_auto_possess
 
@@ -5292,9 +5312,21 @@ a)"xI
 
 /\N{\c/IB,bad_escape_is_literal
 
-/[\j\x{z}\o\gA-\Nb-\g]/B,bad_escape_is_literal
+/[\j\x{z}\o\gAb\g]/B,bad_escape_is_literal
 
 /[Q-\N]/B,bad_escape_is_literal
+
+/[\s-_]/bad_escape_is_literal
+
+/[_-\s]/bad_escape_is_literal
+
+/[\B\R\X]/B
+
+/[\B\R\X]/B,bad_escape_is_literal
+
+/[A-\BP-\RV-\X]/B
+
+/[A-\BP-\RV-\X]/B,bad_escape_is_literal
 
 # ----------------------------------------------------------------------
 
@@ -5428,5 +5460,131 @@ a)"xI
 /^(a?)+b/B
 
 /(?=a+)a(a+)++b/B
+
+/(?<=(?=.){4,5}x)/B
+
+# Perl behaves differently with these when optimization is turned off
+
+/a(*PRUNE:X)bc|qq/mark,no_start_optimize
+\= Expect no match
+    axy
+
+/a(*THEN:X)bc|qq/mark,no_start_optimize
+\= Expect no match
+    axy
+
+/(?^x-i)AB/ 
+
+/(?^-i)AB/ 
+
+/(?x-i-i)/
+
+/(?(?=^))b/I
+    abc
+
+/(?(?=^)|)b/I
+    abc
+
+/(?(?=^)|^)b/I
+    bbc
+\= Expect no match
+    abc     
+
+/(?(1)^|^())/I
+
+/(?(1)^())b/I
+
+/(?(1)^())+b/I,aftertext
+    abc
+
+/(?(1)^()|^)+b/I,aftertext
+    bbc 
+\= Expect no match     
+    abc
+
+/(?(1)^()|^)*b/I,aftertext
+    bbc 
+    abc
+    xbc 
+
+/(?(1)^())+b/I,aftertext
+    abc
+
+/(?(1)^a()|^a)+b/I,aftertext
+    abc 
+\= Expect no match     
+    bbc
+
+/(?(1)^|^(a))+b/I,aftertext
+    abc 
+\= Expect no match     
+    bbc
+
+/(?(1)^a()|^a)*b/I,aftertext
+    abc 
+    bbc
+    xbc 
+
+/a(b)c|xyz/g,allvector,replace=<$0>
+    abcdefabcpqr\=ovector=4
+    abxyz\=ovector=4
+    abcdefxyz\=ovector=4
+    
+/a(b)c|xyz/allvector
+    abcdef\=ovector=4
+    abxyz\=ovector=4
+
+/a(b)c|xyz/g,replace=<$0>,substitute_callout
+    abcdefabcpqr
+    abxyzpqrabcxyz
+    12abc34xyz99abc55\=substitute_stop=2
+    12abc34xyz99abc55\=substitute_skip=1
+    12abc34xyz99abc55\=substitute_skip=2
+
+/a(b)c|xyz/g,replace=<$0>
+    abcdefabcpqr
+    abxyzpqrabcxyz
+    12abc34xyz\=substitute_stop=2
+    12abc34xyz\=substitute_skip=1
+
+/a(b)c|xyz/replace=<$0>
+    abcdefabcpqr
+    12abc34xyz\=substitute_skip=1
+    12abc34xyz\=substitute_stop=1
+
+/abc\rdef/
+    abc\ndef
+
+/abc\rdef\x{0d}xyz/escaped_cr_is_lf
+    abc\ndef\rxyz
+\= Expect no match     
+    abc\ndef\nxyz
+
+/(?(*ACCEPT)xxx)/
+
+/(?(*atomic:xx)xxx)/
+
+/(?(*script_run:xxx)zzz)/
+
+/foobar/
+    the foobar thing\=copy_matched_subject
+    the foobar thing\=copy_matched_subject,zero_terminate
+
+/foobar/g
+    the foobar thing foobar again\=copy_matched_subject
+
+/(*:XX)^abc/I
+
+/(*COMMIT:XX)^abc/I
+
+/(*ACCEPT:XX)^abc/I
+
+/abc/replace=xyz
+    abc\=null_context
+
+/abc/replace=xyz,substitute_callout
+    abc 
+\= Expect error message
+    abc\=null_context
 
 # End of testinput2
