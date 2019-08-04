@@ -63,11 +63,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #define WIN32
 #endif
 
-/* Some cmake's define it still */
-#if defined(__CYGWIN__) && defined(WIN32)
-#undef WIN32
-#endif
-
 #ifdef __VMS
 #include clidef
 #include descrip
